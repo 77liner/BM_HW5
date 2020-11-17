@@ -1,0 +1,95 @@
+---
+title: "Biostatistic Method HW5"
+author: "Liner Ge"
+date: "2020/11/16"
+output: html_document
+---
+
+```{r,echo=FALSE}
+library(tidyverse)
+library(faraway)
+library(broom)
+library(dplyr)
+library(BSDA)
+```
+
+# Problem1
+
+```{r,echo=FALSE}
+prob1_data =
+  read.csv(file = "C:\\Users\\Caroline\\Desktop\\Antibodies.csv") %>%            filter(Smell != "Unanswered/Others") %>%
+  janitor::clean_names() %>%
+  drop_na(antibody_ig_m, smell) 
+
+n1_n2 =
+  prob1_data %>%  
+  group_by(smell) %>% 
+  count()
+
+n1 = 81
+n2 = 178
+
+T_1 = 
+  prob1_data %>% 
+  mutate(rank_1 = rank(antibody_ig_m)) %>% 
+  filter(smell == "Normal") %>%
+  select(rank_1) %>% 
+  sum()
+
+
+ties =
+  prob1_data %>% 
+  mutate(rank_1 = rank(antibody_ig_m)) %>% 
+  group_by(rank_1) %>% 
+  count() %>% 
+  filter(n > 1) %>% 
+  view()
+
+rank_x = 
+  ties %>% 
+  mutate(x = n * (n*n - 1) ) %>% 
+  select(x) 
+sum_ties = sum(pull(rank_x,x))
+t_numerator = -(T_1 - n1 * (n1 + n2 + 1)/2) - 1/2
+t_denominator = sqrt((n1 * n2 / 12) * (n1 + n2 + 1 - sum_ties / ((n1 + n2) * (n1 + n2 - 1))))
+t = t_numerator / t_denominator
+
+qnorm(0.975)
+p_value = 2 * (1 - pnorm(2.4557))
+
+test_data =
+  read.csv(file = "C:\\Users\\Caroline\\Desktop\\Antibodies.csv") %>%            
+  filter(Smell != "Unanswered/Others") %>%
+  janitor::clean_names() %>%
+  drop_na(antibody_ig_m, smell) %>% 
+  pivot_wider(
+    names_from = "smell",
+    values_from = "antibody_ig_m"
+  ) 
+
+test =
+  wilcox.test( pull(test_data, Normal),pull(test_data,Altered), mu = 0)
+
+wilcox_t1 = test$statistic + 81 * (81 + 1 ) / 2
+
+```
+
+# Problem 3
+
+```{r}
+gpa_data = 
+  read.csv(file = "C:\\Users\\Caroline\\Desktop\\GPA.csv") %>% 
+  janitor::clean_names() 
+
+plot(gpa_data$act, gpa_data$gpa)
+
+reg_gpa = lm(gpa_data$gpa~gpa_data$act)
+
+summary(reg_gpa)
+qt(0.975,118)
+confint(reg_gpa, level = 0.95)
+predict.lm(reg_gpa, interval = "confidence", level = 0.95) 
+predict.lm(reg_gpa, act = 28 , interval = "prediction", level = 0.95) 
+
+```
+
